@@ -1,0 +1,35 @@
+{
+  "board": { "size": 4, "startTiles": 2, "spawn4Prob": 0.1 },
+  "energy": {
+    "cap": 40,
+    "mergeGain": { "4": 0, "8": 0, "16": 0, "32": 0, "64": 1, "128": 1, "256": 1, "512": 2, "1024": 2, "2048": 3, "4096": 4, "8192": 5, "16384": 6, "32768": 7, "65536": 8 },
+    "milestoneBonus": { "512": 2, "1024": 3, "2048": 4, "4096": 5, "8192": 7, "16384": 8, "32768": 10, "65536": 12 },
+    "combo": { "4": 1, "5": 1 }
+  },
+  "speed": { "autoSteps": [40, 90, 150], "maxLevel": 4 },
+  "items": {
+    "undo":       { "name": "时光倒流", "icon": "⏳", "baseCost": 8, "costGrowth": 2, "maxHistory": 1 },
+    "shield":     { "name": "温室罩",   "icon": "🏡", "cost": 18, "turns": 3 },
+    "magic":      { "name": "园丁手",   "icon": "🧤", "cost": 22, "cooldown": 6, "cannotMoveMax": true },
+    "tornado":    { "name": "清风",     "icon": "🍃", "cost": 25, "maxEmptyToUse": 1 },
+    "fertilizer": { "name": "肥料",     "icon": "🌱", "cost": 40, "maxTargetRatio": 0.25, "oncePerGame": true }
+  },
+  "colors": {
+    "2": "#bfe3a3", "4": "#e9f0a0", "8": "#ffe3a3", "16": "#ffd1dc", "32": "#ff9fc2",
+    "64": "#ff7eae", "128": "#c3a8ff", "256": "#9d7bff", "512": "#7ec8ff",
+    "1024": "#ffc24b", "2048": "#ff5e7e",
+    "4096": "#ff7b29", "8192": "#ff2d68", "16384": "#b14bff", "32768": "#1fb6ff", "65536": "#15d6b4",
+    "big": "#ffd700"
+  },
+  "legendaryFrom": 4096,
+  "leaderboard": { "size": 10, "nameMaxLen": 8 },
+  "_note_badwords": "违禁词表见 config.js 的 badwords（前端兜底示例，正式需接入服务端内容安全/词库）。",
+  "_note_levels": "以下关卡为挑战模式设计参考，当前 build 仅无尽模式，未接入。",
+  "levels": [
+    { "id": 1, "name": "初试身手", "target": 256, "constraints": {}, "desc": "达到 256" },
+    { "id": 2, "name": "从容布局", "target": 512, "constraints": { "minEmptyAtWin": 3 }, "desc": "达到 512 且达成时保留 ≥3 空格" },
+    { "id": 3, "name": "稳扎稳打", "target": 256, "constraints": { "maxSteps": 200 }, "desc": "200 步内达到 256" },
+    { "id": 4, "name": "纯手操",   "target": 512, "constraints": { "noItems": true }, "desc": "不使用任何道具达到 512" },
+    { "id": 5, "name": "能量大师", "target": 512, "constraints": { "minCumEnergy": 60 }, "desc": "达到 512 且累计获得 ≥60 能量" }
+  ]
+}

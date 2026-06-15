@@ -1,0 +1,52 @@
+分组,参数,键/合成结果,数值,说明
+棋盘,size,,4,4x4 经典棋盘
+棋盘,startTiles,,2,开局生成方块数
+棋盘,spawn4Prob,,0.1,新方块为 4 的概率
+能量,cap,,40,阳光上限(肥料40=攒满整条)
+能量-合成收益,mergeGain,4,0,v4再砍半:64以下都不给
+能量-合成收益,mergeGain,8,0,
+能量-合成收益,mergeGain,16,0,
+能量-合成收益,mergeGain,32,0,
+能量-合成收益,mergeGain,64,1,
+能量-合成收益,mergeGain,128,1,
+能量-合成收益,mergeGain,256,1,
+能量-合成收益,mergeGain,512,2,
+能量-合成收益,mergeGain,1024,2,
+能量-合成收益,mergeGain,2048,3,
+能量-合成收益,mergeGain,4096,4,传说花·焰橙
+能量-合成收益,mergeGain,8192,5,传说花·烈焰红
+能量-合成收益,mergeGain,16384,6,传说花·魔幻紫
+能量-合成收益,mergeGain,32768,7,传说花·极光蓝
+能量-合成收益,mergeGain,65536,8,传说花·翡翠青
+能量-里程碑,milestoneBonus,512,2,首次达成该最高数字一次性奖励(从512起)
+能量-里程碑,milestoneBonus,1024,3,
+能量-里程碑,milestoneBonus,2048,4,
+能量-里程碑,milestoneBonus,4096,5,传说花里程碑
+能量-里程碑,milestoneBonus,8192,7,
+能量-里程碑,milestoneBonus,16384,8,
+能量-里程碑,milestoneBonus,32768,10,
+能量-里程碑,milestoneBonus,65536,12,
+能量-连开,combo,4,1,4 连开(3连不再给)
+能量-连开,combo,5,1,5 连及以上
+倍速,autoSteps,,"40/90/150",步数到达自动升 2x/3x/4x
+倍速,maxLevel,,4,最高倍速(出花基数=2^倍速)
+排行榜,size,,10,只展示前 N 名
+排行榜,nameMaxLen,,8,名字最大长度
+道具-时光倒流,baseCost,,8,基础费用
+道具-时光倒流,costGrowth,,2,每次使用成本翻倍(防刷)
+道具-时光倒流,maxHistory,,1,可撤销步数
+道具-护盾,cost,,18,
+道具-护盾,turns,,3,锁定回合数
+道具-魔术手,cost,,22,
+道具-魔术手,cooldown,,6,冷却步数
+道具-魔术手,cannotMoveMax,,true,不能移动最大数字
+道具-龙卷风,cost,,25,
+道具-龙卷风,maxEmptyToUse,,1,仅当空格≤此值可用
+道具-肥料,cost,,40,= 阳光上限,必须攒满整条
+道具-肥料,maxTargetRatio,,0.25,只能升级≤最大数字×此比例的格
+道具-肥料,oncePerGame,,true,每局限 1 次
+关卡1,target,,256,达到 256
+关卡2,target,,512,达到512且保留≥3空格(minEmptyAtWin=3)
+关卡3,target,,256,200步内达到256(maxSteps=200)
+关卡4,target,,512,不使用道具达到512(noItems)
+关卡5,target,,512,达到512且累计能量≥60(minCumEnergy=60)
