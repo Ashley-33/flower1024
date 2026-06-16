@@ -164,7 +164,11 @@
       this.cumEnergy += gain;
       this.energy = Math.min(C.energy.cap, this.energy + gain);
       this.lastStepGain = gain;
+      const oldUnlocked = this.unlockedLevel();
       this.steps++;
+      const newUnlocked = this.unlockedLevel();
+      this.justUnlocked = newUnlocked > oldUnlocked ? newUnlocked : null;  // 这步是否解锁了新倍速
+      if (this.justUnlocked) this.mult = newUnlocked;                      // 自动切到最高速
 
       if (this.shield) { this.shield.turns--; if (this.shield.turns <= 0) this.shield = null; }
       if (this.magicCd > 0) this.magicCd--;
@@ -947,7 +951,37 @@
     Sound.slide();
     if (a.maxMerge >= 512) Sound.bloomBig();
     else if (a.maxMerge > 0) Sound.merge(a.maxMerge);
+    if (game.justUnlocked) { showToast(`🚀 升级加速啦！现在 ${game.justUnlocked}x`); Sound.bloomBig(); }
     refresh();
+  }
+  let toastTimer = null;
+  function showToast(text) {
+    const t = $('toast'); if (!t) return;
+    t.textContent = text; t.classList.add('show');
+    if (window.GardenFx && window.GardenFx.fireworks) window.GardenFx.fireworks();   // 撒烟花
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);                 // 自动消失
+  }
+
+  /* ---------------- 加入主屏幕横幅 ---------------- */
+  function setupA2HS() {
+    const bar = $('a2hs'); if (!bar) return;
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (standalone) return;
+    try { if (localStorage.getItem('a2hs_dismissed')) return; } catch (e) { /* ignore */ }
+    const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches;
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    let deferred = null;
+    const show = () => { bar.classList.remove('hidden'); requestAnimationFrame(() => bar.classList.add('in')); };
+    const hide = () => { bar.classList.remove('in'); setTimeout(() => bar.classList.add('hidden'), 280); };
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; show(); });
+    $('a2hs-close').onclick = () => { hide(); try { localStorage.setItem('a2hs_dismissed', '1'); } catch (e) {} };
+    $('a2hs-add').onclick = async () => {
+      if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; hide(); try { localStorage.setItem('a2hs_dismissed', '1'); } catch (e) {} }
+      else $('a2hs-tip').textContent = isIOS ? '点底部「分享」→「添加到主屏幕」' : '浏览器菜单 →「添加到主屏幕」';
+    };
+    // 移动端（含 iOS 无 beforeinstallprompt）延迟弹出推荐
+    if (isMobile) setTimeout(show, 1600);
   }
 
   // 键盘
@@ -1029,6 +1063,7 @@
   window.addEventListener('resize', layout);
   window.addEventListener('load', layout);   // 字体加载后重新适配高度
   initControls();
+  setupA2HS();
   newGame(null);
   layout();
   requestAnimationFrame(loop);

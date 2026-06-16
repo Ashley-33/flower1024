@@ -1,0 +1,17 @@
+{
+  "name": "拾光花园",
+  "short_name": "拾光花园",
+  "description": "种花·合成·拾阳光 —— 治愈系花园合成小游戏",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eafaf0",
+  "theme_color": "#a9d98e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "AppStore-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

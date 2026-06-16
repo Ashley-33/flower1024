@@ -59,6 +59,40 @@ body::after {
 }
 .helpbtn:active { transform: scale(.92); }
 
+/* 升级加速提示 toast（屏幕居中、弹出后自动淡出） */
+.toast {
+  position: fixed; top: 42%; left: 50%; z-index: 27; pointer-events: none;
+  transform: translate(-50%, -50%) scale(.8); opacity: 0;
+  background: linear-gradient(180deg, #ffe08a, #ffb300); color: #7a5300;
+  font-size: 18px; font-weight: 800; padding: 14px 28px; border-radius: 999px;
+  border: 3px solid #fff; box-shadow: 0 12px 32px rgba(240,150,0,.45);
+  white-space: nowrap;
+  transition: opacity .3s ease, transform .3s cubic-bezier(.2, 1.4, .4, 1);
+}
+.toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* 加入主屏幕横幅 */
+.a2hs {
+  position: fixed; left: 50%; bottom: 14px; transform: translate(-50%, 150%);
+  z-index: 28; width: calc(100% - 24px); max-width: 440px;
+  display: flex; align-items: center; gap: 10px;
+  background: #fffdf7; border: 2px solid #fff; border-radius: 16px;
+  padding: 10px 12px; box-shadow: 0 10px 30px rgba(60,80,50,.28);
+  transition: transform .3s ease;
+}
+.a2hs.in { transform: translate(-50%, 0); }
+.a2hs.hidden { display: none; }
+.a2hs-ic { width: 42px; height: 42px; border-radius: 11px; flex: none; }
+.a2hs-txt { flex: 1; display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.a2hs-txt b { font-size: 14px; color: #5f8a48; }
+.a2hs-txt span { font-size: 12px; color: #9bbd86; }
+.a2hs-add {
+  font-family: inherit; font-weight: 800; font-size: 13px; flex: none; cursor: pointer;
+  border: none; border-radius: 10px; padding: 8px 14px;
+  background: linear-gradient(180deg, #9ed87a, #7cc14f); color: #fff;
+}
+.a2hs-close { background: none; border: none; color: #b7c2ac; font-size: 16px; cursor: pointer; flex: none; padding: 4px; }
+
 /* 帮助弹窗内容 */
 .help-intro { font-size: 13px; font-weight: 600; color: #7a8a6a; line-height: 1.65; text-align: left; margin: 6px 0 12px; }
 .help-list { list-style: none; padding: 0; margin: 0 0 12px; text-align: left; }

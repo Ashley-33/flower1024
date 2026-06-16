@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>拾光花园</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#a9d98e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="拾光花园" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css?v=11" />
 </head>
 <body>
   <div id="app">
@@ -32,9 +39,18 @@
   </div>
 
   <div id="helpov" class="hidden"></div>
+  <div id="toast" class="toast"></div>
 
-  <script src="petals.js?v=1"></script>
-  <script src="config.js?v=10"></script>
-  <script src="game.js?v=10"></script>
+  <!-- 加入主屏幕横幅 -->
+  <div id="a2hs" class="a2hs hidden">
+    <img src="icon-192.png" alt="" class="a2hs-ic" />
+    <div class="a2hs-txt"><b>把「拾光花园」加到主屏幕</b><span id="a2hs-tip">像 App 一样一点就玩 🌸</span></div>
+    <button id="a2hs-add" class="a2hs-add">添加</button>
+    <button id="a2hs-close" class="a2hs-close" aria-label="关闭">✕</button>
+  </div>
+
+  <script src="petals.js?v=2"></script>
+  <script src="config.js?v=11"></script>
+  <script src="game.js?v=12"></script>
 </body>
 </html>
