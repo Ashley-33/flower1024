@@ -153,6 +153,7 @@ body::after {
   box-shadow: 0 2px 6px rgba(120,170,90,.15);
 }
 .spbtn.on { background: linear-gradient(180deg, #9ed87a, #7cc14f); color: #fff; }
+.spbtn.locked { background: #eef0e8; color: #b7c2ac; cursor: not-allowed; box-shadow: none; }
 .spnote { font-size: 11px; font-weight: 600; color: #aab69c; margin-left: 2px; }
 
 /* 提示 */

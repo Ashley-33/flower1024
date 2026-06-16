@@ -1,5 +1,5 @@
 /* =============================================================================
- *  1024 能量版 —— 游戏逻辑 + 渲染 + 输入（纯原生，无依赖）
+ *  拾光花园 —— 游戏逻辑 + 渲染 + 输入（纯原生，无依赖）
  *  数值全部来自 window.GAME_CONFIG（config.js）。
  * ========================================================================== */
 (function () {
@@ -757,20 +757,36 @@
     return h + '</ol>';
   }
 
+  // 解锁某倍速所需步数（1x 始终解锁，2x/3x/4x 由 speed.autoSteps 决定）
+  function unlockStepFor(m) {
+    if (m <= 1) return 0;
+    const steps = (C.speed && C.speed.autoSteps) || [];
+    return steps[m - 2] != null ? steps[m - 2] : Infinity;
+  }
   function renderSpeed() {
     const box = $('speed');
     if (!box) return;
     const max = (C.speed && C.speed.maxLevel) || 4;
     const eff = game.effMult();
     const auto = game.manualMult == null;
+    const unlockedMax = game.autoMult();        // 当前已解锁的最高倍速
     let h = '<span class="splabel">倍速</span>';
     h += `<button class="spbtn${auto ? ' on' : ''}" data-m="auto">自动</button>`;
     for (let m = 1; m <= max; m++) {
-      h += `<button class="spbtn${(!auto && m === eff) ? ' on' : ''}" data-m="${m}">${m}x</button>`;
+      if (m <= unlockedMax) {
+        h += `<button class="spbtn${(!auto && m === eff) ? ' on' : ''}" data-m="${m}">${m}x</button>`;
+      } else {
+        h += `<button class="spbtn locked" disabled title="${unlockStepFor(m)} 步解锁">${m}x🔒</button>`;
+      }
     }
-    h += `<span class="spnote">出花从 ${Math.pow(2, eff)} 起</span>`;
+    let note = `出花从 ${Math.pow(2, eff)} 起`;
+    if (unlockedMax < max) {
+      const remain = Math.max(0, unlockStepFor(unlockedMax + 1) - game.steps);
+      note += ` · 再 ${remain} 步解锁 ${unlockedMax + 1}x`;
+    }
+    h += `<span class="spnote">${note}</span>`;
     box.innerHTML = h;
-    box.querySelectorAll('.spbtn').forEach((b) => {
+    box.querySelectorAll('.spbtn:not(.locked)').forEach((b) => {
       b.onclick = () => {
         game.manualMult = b.dataset.m === 'auto' ? null : +b.dataset.m;
         refresh();
