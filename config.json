@@ -8,11 +8,11 @@
   },
   "speed": { "autoSteps": [66, 132, 198], "maxLevel": 4 },
   "items": {
-    "undo":       { "name": "时光倒流", "icon": "⏳", "baseCost": 8, "costGrowth": 2, "maxHistory": 1 },
-    "shield":     { "name": "温室罩",   "icon": "🏡", "cost": 18, "turns": 3 },
-    "magic":      { "name": "园丁手",   "icon": "🧤", "cost": 22, "cooldown": 6, "cannotMoveMax": true },
-    "tornado":    { "name": "清风",     "icon": "🍃", "cost": 25, "maxEmptyToUse": 1 },
-    "fertilizer": { "name": "肥料",     "icon": "🌱", "cost": 40, "maxTargetRatio": 0.25, "oncePerGame": true }
+    "undo":       { "name": "时光倒流", "icon": "⏳", "baseCost": 8, "costGrowth": 2, "maxHistory": 1, "tip": "撤销上一步（费用随次数翻倍，会退还该步阳光）" },
+    "shield":     { "name": "温室罩",   "icon": "🏡", "cost": 18, "turns": 3, "tip": "选一朵花，3 回合内固定不动、不被挤走，保护大花" },
+    "magic":      { "name": "园丁手",   "icon": "🧤", "cost": 22, "cooldown": 6, "cannotMoveMax": true, "tip": "把任意花移到空格（最大的花不能移，用后有冷却）" },
+    "tornado":    { "name": "清风",     "icon": "🍃", "cost": 25, "maxEmptyToUse": 1, "tip": "把所有花重新洗牌排布（仅残局、空格≤1 时可用）" },
+    "fertilizer": { "name": "肥料",     "icon": "🌱", "cost": 40, "maxTargetRatio": 0.25, "oncePerGame": true, "tip": "选一朵小花直接升一级（限最大数字¼以内，每局 1 次）" }
   },
   "colors": {
     "2": "#bfe3a3", "4": "#e9f0a0", "8": "#ffe3a3", "16": "#ffd1dc", "32": "#ff9fc2",

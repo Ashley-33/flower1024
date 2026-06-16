@@ -38,8 +38,8 @@ window.GAME_CONFIG = {
   },
 
   /* ---------------- 倍速模式 ----------------
-   * 倍速按步数“解锁”：未达步数的档位锁住不可选，达到后才能点选。
-   * 「自动」= 跟随已解锁的最高倍速；也可手动锁定某个已解锁档位。
+   * 单个按钮点击循环切换：1x→2x→…→已解锁最高档→（提示还差几步解下一档）→回 1x。
+   * 倍速按步数“解锁”：未达步数的档位点不到，按钮会提示「还差 N 步解锁 Nx」。
    * 倍速 m 决定新方块的起始数字：基数 = 2^m（m=1→2/4, 2→4/8, 3→8/16, 4→16/32）。
    */
   speed: {
@@ -50,16 +50,21 @@ window.GAME_CONFIG = {
   /* ---------------- 道具（见设计文档第 3 节，重点是“枷锁”） ---------------- */
   items: {
     // 时光倒流：撤销上一步。回退会一并退还该步能量（防刷），且成本逐次翻倍。
-    undo:       { name: '时光倒流', icon: '⏳', baseCost: 8, costGrowth: 2, maxHistory: 1 },
+    undo:       { name: '时光倒流', icon: '⏳', baseCost: 8, costGrowth: 2, maxHistory: 1,
+                  tip: '撤销上一步（费用随次数翻倍，会退还该步阳光）' },
     // 护盾：锁定一格 N 回合不被移动（原型简化为“不可移动的墙”，保护大数字）
-    shield:     { name: '温室罩',   icon: '🏡', cost: 18, turns: 3 },
+    shield:     { name: '温室罩',   icon: '🏡', cost: 18, turns: 3,
+                  tip: '选一朵花，3 回合内固定不动、不被挤走，保护大花' },
     // 魔术手：把任意方块移到任意空格。不能移动最大数字，且 N 步冷却（防解题）
-    magic:      { name: '园丁手',   icon: '🧤', cost: 22, cooldown: 6, cannotMoveMax: true },
+    magic:      { name: '园丁手',   icon: '🧤', cost: 22, cooldown: 6, cannotMoveMax: true,
+                  tip: '把任意花移到空格（最大的花不能移，用后有冷却）' },
     // 龙卷风：保留所有数字、随机重排。仅当空格 ≤ N 时可用（真·残局才触发）
-    tornado:    { name: '清风',     icon: '🍃', cost: 25, maxEmptyToUse: 1 },
+    tornado:    { name: '清风',     icon: '🍃', cost: 25, maxEmptyToUse: 1,
+                  tip: '把所有花重新洗牌排布（仅残局、空格≤1 时可用）' },
     // 肥料：指定方块升一级。只能作用于 ≤ 最大数字×ratio 的格，每局限 1 次（锁最死）
     // 费用 = 阳光上限，必须攒满整条才能放，是全局终极取舍。
-    fertilizer: { name: '肥料',     icon: '🌱', cost: 40, maxTargetRatio: 0.25, oncePerGame: true },
+    fertilizer: { name: '肥料',     icon: '🌱', cost: 40, maxTargetRatio: 0.25, oncePerGame: true,
+                  tip: '选一朵小花直接升一级（限最大数字¼以内，每局 1 次）' },
   },
 
   /* ---------------- 挑战关卡（见设计文档第 4 节） ----------------

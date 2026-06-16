@@ -24,7 +24,7 @@
       this.undoUses = 0; this.magicCd = 0; this.fertUsed = false; this.itemsUsed = 0;
       this.shield = null;            // { r, c, turns }
       this.history = null;           // 单步快照（maxHistory = 1）
-      this.manualMult = null;        // 玩家手动选的倍速（null = 跟随步数自动）
+      this.mult = 1;                 // 当前倍速（1..maxLevel）；点按钮循环切换，受步数解锁限制
       this.lastStepGain = 0;
       this.status = 'playing';       // playing | won | lost | stuck
       this.message = '';
@@ -37,18 +37,17 @@
       for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (this.grid[r][c] === 0) a.push([r, c]);
       return a;
     }
-    // 自动倍速等级（按步数）；手动选择优先
-    autoMult() {
+    // 按步数已解锁的最高倍速（用于限制可切换范围）
+    unlockedLevel() {
       const steps = (C.speed && C.speed.autoSteps) || [];
       let lv = 1; for (const s of steps) if (this.steps >= s) lv++;
       return Math.min(lv, (C.speed && C.speed.maxLevel) || 4);
     }
-    effMult() { return this.manualMult != null ? this.manualMult : this.autoMult(); }
     addRandom() {
       const e = this.emptyCells();
       if (!e.length) return null;
       const [r, c] = e[ri(e.length)];
-      const base = Math.pow(2, this.effMult());            // m=1→2, 2→4, 3→8, 4→16
+      const base = Math.pow(2, this.mult);                 // m=1→2, 2→4, 3→8, 4→16
       this.grid[r][c] = Math.random() < C.board.spawn4Prob ? base * 2 : base;
       return [r, c];
     }
@@ -123,7 +122,7 @@
         combo: this.combo, bestCombo: this.bestCombo, steps: this.steps, maxTile: this.maxTile,
         reached: new Set(this.reached), magicCd: this.magicCd,
         shield: this.shield ? { ...this.shield } : null, fertUsed: this.fertUsed, itemsUsed: this.itemsUsed,
-        manualMult: this.manualMult,
+        mult: this.mult,
       };
     }
 
@@ -236,7 +235,7 @@
       this.grid = cloneGrid(h.grid); this.cumEnergy = h.cumEnergy; this.score = h.score; this.combo = h.combo;
       this.bestCombo = h.bestCombo; this.steps = h.steps; this.maxTile = h.maxTile;
       this.reached = new Set(h.reached); this.shield = h.shield ? { ...h.shield } : null; this.magicCd = h.magicCd;
-      this.manualMult = h.manualMult != null ? h.manualMult : this.manualMult;
+      if (h.mult != null) this.mult = h.mult;
       this.energy = Math.max(0, h.energy - cost);   // 退还该步能量(=回到 h.energy) 再付撤销费
       this.undoUses++; this.itemsUsed++;
       this.history = null; this.status = 'playing'; this.message = '⏳ 时光倒流：已退回上一步';
@@ -310,8 +309,23 @@
   let GAP, CELL, PAD;
 
   function layout() {
-    const size = Math.min(window.innerWidth - 24, 420);
     const dpr = window.devicePixelRatio || 1;
+    // 棋盘以外的竖向占用，按可用高度收缩棋盘，确保一屏放下（PC 无需滚动）
+    let others = 0;
+    ['hud', 'speed', 'hint', 'items'].forEach((id) => { const el = $(id); if (el) others += el.offsetHeight; });
+    const bar = document.querySelector('.bar'); if (bar) others += bar.offsetHeight;
+    const tip = document.querySelector('.tip'); if (tip) others += tip.offsetHeight;
+    const appEl = $('app');
+    const cs = appEl ? getComputedStyle(appEl) : null;
+    const appPadY = cs ? parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) : 24;
+    const appPadX = cs ? parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) : 28;
+    const gap = cs ? (parseFloat(cs.rowGap || cs.gap) || 9) : 9;
+    const BOARD_CHROME = 22;          // boardwrap 内边距(16)+边框(6)
+    const appContentW = (appEl ? appEl.clientWidth : window.innerWidth) - appPadX;
+    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    // 量不到可靠高度时(<200，如隐藏标签/预渲染)只按宽度约束，避免棋盘塌成最小尺寸
+    const availH = vh < 200 ? Infinity : (vh - appPadY - others - gap * 6 - BOARD_CHROME - 6);
+    const size = Math.max(170, Math.min(appContentW - BOARD_CHROME, availH));
     PAD = Math.round(size * 0.03);
     GAP = Math.round(size * 0.025);
     CELL = (size - PAD * 2 - GAP * (SIZE - 1)) / SIZE;
@@ -697,6 +711,9 @@
       btn.className = 'item' + (st.disabled ? ' disabled' : '') + (pending && pending.type === key ? ' selecting' : '');
       btn.innerHTML = `<span class="ic">${it.icon}</span><span class="nm">${it.name}</span>`
         + `<span class="cost">☀️${st.cost}${st.note ? ' · ' + st.note : ''}</span>`;
+      btn.title = `${it.name}：${it.tip || ''}`;     // 原生 hover 兜底
+      btn.onmouseenter = () => showItemTip(`${it.icon} ${it.name}：${it.tip || ''}`);
+      btn.onmouseleave = clearItemTip;
       btn.onclick = () => onItem(key);
       box.appendChild(btn);
     }
@@ -767,31 +784,32 @@
     const box = $('speed');
     if (!box) return;
     const max = (C.speed && C.speed.maxLevel) || 4;
-    const eff = game.effMult();
-    const auto = game.manualMult == null;
-    const unlockedMax = game.autoMult();        // 当前已解锁的最高倍速
-    let h = '<span class="splabel">倍速</span>';
-    h += `<button class="spbtn${auto ? ' on' : ''}" data-m="auto">自动</button>`;
-    for (let m = 1; m <= max; m++) {
-      if (m <= unlockedMax) {
-        h += `<button class="spbtn${(!auto && m === eff) ? ' on' : ''}" data-m="${m}">${m}x</button>`;
-      } else {
-        h += `<button class="spbtn locked" disabled title="${unlockStepFor(m)} 步解锁">${m}x🔒</button>`;
-      }
+    const m = game.mult;
+    const unlocked = game.unlockedLevel();
+    let note = `出花从 ${Math.pow(2, m)} 起`;
+    if (unlocked < max) {
+      const remain = Math.max(0, unlockStepFor(unlocked + 1) - game.steps);
+      note += ` · 再 ${remain} 步解 ${unlocked + 1}x🔒`;
+    } else {
+      note += ' · 已满级';
     }
-    let note = `出花从 ${Math.pow(2, eff)} 起`;
-    if (unlockedMax < max) {
-      const remain = Math.max(0, unlockStepFor(unlockedMax + 1) - game.steps);
-      note += ` · 再 ${remain} 步解锁 ${unlockedMax + 1}x`;
+    box.innerHTML = `<button id="spbtn" class="spbtn-one">⏩ 倍速 ${m}x</button>`
+      + `<span class="spnote">${note}</span>`;
+    $('spbtn').onclick = cycleSpeed;
+  }
+  function cycleSpeed() {
+    const max = (C.speed && C.speed.maxLevel) || 4;
+    const unlocked = game.unlockedLevel();
+    if (game.mult < unlocked) {                 // 还能往上 → 升一档
+      game.mult++;
+    } else if (unlocked < max) {                // 顶到锁 → 提示还差多少步，循环回 1x
+      const remain = Math.max(0, unlockStepFor(unlocked + 1) - game.steps);
+      flash(`🔒 还差 ${remain} 步解锁 ${unlocked + 1}x`);
+      game.mult = 1;
+    } else {                                    // 已满级 → 循环回 1x
+      game.mult = 1;
     }
-    h += `<span class="spnote">${note}</span>`;
-    box.innerHTML = h;
-    box.querySelectorAll('.spbtn:not(.locked)').forEach((b) => {
-      b.onclick = () => {
-        game.manualMult = b.dataset.m === 'auto' ? null : +b.dataset.m;
-        refresh();
-      };
-    });
+    refresh();
   }
 
   function renderOverlay() {
@@ -856,10 +874,25 @@
     anim = { popOnly: true, popSet: new Set(cells.map((c) => c[0] + ',' + c[1])), t0: now() };
   }
 
+  // 道具悬停说明：未选中道具时，在提示区显示用法（不消耗阳光）
+  function showItemTip(text) {
+    if (pending) return;
+    const h = $('hint'); h.textContent = text; h.className = 'hint info';
+  }
+  function clearItemTip() {
+    if (pending) return;
+    const h = $('hint'); h.textContent = game.message || ''; h.className = 'hint';
+  }
+
   /* ---------------- 交互 ---------------- */
   function onItem(key) {
     if (game.status === 'won' || game.status === 'lost') return;
     Sound.start();
+    const st = itemState(key);
+    if (st.disabled) {                            // 不可用：只显示用法，不花阳光
+      showItemTip(`${C.items[key].icon} ${C.items[key].name}：${C.items[key].tip || ''}${st.note ? '（' + st.note + '）' : ''}`);
+      return;
+    }
     if (pending && pending.type === key) { pending = null; refresh(); return; } // 再点取消
     let err = null;
     if (key === 'undo') { err = game.useUndo(); if (!err) { anim = null; Sound.item(); } }
@@ -959,13 +992,41 @@
     game = new Game(levelId);
     refresh();
   }
+  /* ---------------- 帮助弹窗 ---------------- */
+  function buildHelp() {
+    const rows = ITEM_ORDER.map((k) => {
+      const i = C.items[k];
+      const cost = i.cost != null ? i.cost : i.baseCost;
+      return `<li><span class="hk-ic">${i.icon}</span><div class="hk-txt">`
+        + `<b>${i.name}</b> <span class="hk-cost">☀️${cost}</span><br>`
+        + `<span class="hk-tip">${i.tip || ''}</span></div></li>`;
+    }).join('');
+    return '<div class="ov-card help">'
+      + '<div class="ov-title">🌸 玩法 & 道具</div>'
+      + '<p class="help-intro">滑动或方向键移动，相同的花会合成更大的一朵，越合越盛。每次合成积攒「阳光 ☀️」，攒够就能用下面的园艺道具救场或翻盘。棋盘开满且无法移动即结束。</p>'
+      + '<div class="ov-boardtitle">🧰 道具说明</div>'
+      + `<ul class="help-list">${rows}</ul>`
+      + '<p class="help-intro">⏩ <b>倍速</b>：点按钮循环切换，倍速越高新花起始数字越大；按步数逐档解锁。</p>'
+      + '<button id="helpClose" class="ovbtn">知道啦 🌱</button></div>';
+  }
+  function openHelp() {
+    const o = $('helpov');
+    o.innerHTML = buildHelp();
+    o.className = '';
+    $('helpClose').onclick = closeHelp;
+    o.onclick = (e) => { if (e.target === o) closeHelp(); };
+  }
+  function closeHelp() { const o = $('helpov'); o.className = 'hidden'; o.innerHTML = ''; }
+
   function initControls() {
     $('restart').onclick = () => newGame(null);
+    const hb = $('help'); if (hb) hb.onclick = openHelp;
     const sb = $('sound');
     if (sb) sb.onclick = () => { Sound.start(); const m = Sound.toggleMute(); sb.textContent = m ? '🔇' : '🔊'; };
   }
 
   window.addEventListener('resize', layout);
+  window.addEventListener('load', layout);   // 字体加载后重新适配高度
   initControls();
   newGame(null);
   layout();
