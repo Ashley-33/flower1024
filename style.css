@@ -2,7 +2,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body {
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;                /* 锁住整页，滑屏不再把页面拖上去 */
+  overscroll-behavior: none;       /* 关掉橡皮筋/滚动链 */
+  user-select: none; -webkit-user-select: none;   /* 文字不可选中 */
+  -webkit-touch-callout: none;     /* 关掉 iOS 长按弹出菜单 */
   color: #5e7d4f;
   font-family: "Baloo 2", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
   background:
@@ -135,6 +139,7 @@ body::after {
   text-align: center; padding: 10px; border: 2px solid #cfe6b8; border-radius: 12px;
   color: #5f8a48; background: #fff;
 }
+#nameInput { user-select: text; -webkit-user-select: text; }   /* 名字输入仍可选 */
 #nameInput:focus { outline: none; border-color: #9ed87a; }
 .ov-err { min-height: 16px; font-size: 12px; font-weight: 700; color: #e8590c; margin: 6px 0 8px; }
 .ovbtn {

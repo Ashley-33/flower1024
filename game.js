@@ -963,6 +963,7 @@
     return { x: clientX - rect.left, y: clientY - rect.top };
   }
   canvas.addEventListener('touchstart', (e) => { const t = e.touches[0]; touchStart = { x: t.clientX, y: t.clientY }; }, { passive: true });
+  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });  // 滑棋盘不带动页面
   canvas.addEventListener('touchend', (e) => {
     if (!touchStart) return;
     const t = e.changedTouches[0];
