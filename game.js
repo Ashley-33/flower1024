@@ -722,27 +722,47 @@
       box.appendChild(btn);
     }
   }
-  /* ---------------- 排行榜（localStorage 本地持久化） ---------------- */
+  /* ---------------- 排行榜（Supabase 联网 + localStorage 缓存兜底） ---------------- */
   const LB_KEY = 'garden1024_leaderboard_v1';
   const LB_SIZE = (C.leaderboard && C.leaderboard.size) || 10;
   const NAME_MAX = (C.leaderboard && C.leaderboard.nameMaxLen) || 8;
-  let scoreSubmitted = false, lastSavedT = null, forcedEnd = false;
+  const SB = (C.supabase && C.supabase.url && C.supabase.anonKey) ? C.supabase : null;
+  let scoreSubmitted = false, lastSaved = null, forcedEnd = false;   // lastSaved = {name, score}
+  let board = loadLBCache();        // 当前榜单（缓存优先，联网后覆盖）
+  let boardSynced = false;          // 本次结算是否已向服务器同步过
 
-  function loadLB() { try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch (e) { return []; } }
-  function saveLB(list) { try { localStorage.setItem(LB_KEY, JSON.stringify(list)); } catch (e) { /* 隐私模式忽略 */ } }
-  function qualifies(score) {
-    const lb = loadLB();
-    return score > 0 && (lb.length < LB_SIZE || score > lb[lb.length - 1].score);
+  function loadLBCache() { try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch (e) { return []; } }
+  function saveLBCache(list) { try { localStorage.setItem(LB_KEY, JSON.stringify(list)); } catch (e) { /* 隐私模式忽略 */ } }
+
+  function sbHeaders(extra) {
+    return Object.assign({ apikey: SB.anonKey, Authorization: 'Bearer ' + SB.anonKey, 'Content-Type': 'application/json' }, extra || {});
   }
-  function rankFor(score) { let n = 0; for (const e of loadLB()) if (e.score > score) n++; return n + 1; }
-  function addScore(name, score, max) {
-    const lb = loadLB();
-    const entry = { name, score, max, t: Date.now() };
-    lb.push(entry);
-    lb.sort((a, b) => b.score - a.score || b.max - a.max || a.t - b.t);
-    const top = lb.slice(0, LB_SIZE);
-    saveLB(top);
-    return entry;
+  async function sbTop() {
+    const url = `${SB.url}/rest/v1/scores?select=name,score,max&order=score.desc,max.desc&limit=${LB_SIZE}`;
+    const r = await fetch(url, { headers: sbHeaders() });
+    if (!r.ok) throw new Error('GET ' + r.status);
+    return await r.json();
+  }
+  async function sbAdd(name, score, max) {
+    const r = await fetch(`${SB.url}/rest/v1/scores`, { method: 'POST', headers: sbHeaders({ Prefer: 'return=minimal' }), body: JSON.stringify({ name, score, max }) });
+    if (!r.ok) throw new Error('POST ' + r.status);
+  }
+  function endScreenOpen() { const o = $('overlay'); return o && !o.className.includes('hidden'); }
+  // 拉取线上榜单刷新本地缓存（结算界面打开时调用一次）
+  async function syncBoard() {
+    if (!SB || boardSynced) return;
+    boardSynced = true;
+    try { const top = await sbTop(); board = top; saveLBCache(top); if (endScreenOpen()) renderOverlay(); }
+    catch (e) { /* 离线/失败：保留缓存 */ }
+  }
+
+  function qualifies(score) {
+    return score > 0 && (board.length < LB_SIZE || score > board[board.length - 1].score);
+  }
+  function rankFor(score) { let n = 0; for (const e of board) if (e.score > score) n++; return n + 1; }
+  function addLocal(name, score, max) {           // 本地先落一条，立即可见
+    board = board.concat([{ name, score, max }]).sort((a, b) => b.score - a.score || b.max - a.max).slice(0, LB_SIZE);
+    saveLBCache(board);
   }
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -757,20 +777,30 @@
     for (const w of (C.badwords || [])) if (norm.includes(w)) return { ok: false, msg: '名字含违禁词，请换一个' };
     return { ok: true, name };
   }
-  function submitScore(raw) {
+  async function submitScore(raw) {
     const v = validateName(raw);
     if (!v.ok) { const e = $('nameErr'); if (e) e.textContent = v.msg; return; }
-    const entry = addScore(v.name, game.score, game.maxTile);
-    scoreSubmitted = true; lastSavedT = entry.t;
+    scoreSubmitted = true; lastSaved = { name: v.name, score: game.score };
+    addLocal(v.name, game.score, game.maxTile);   // 本地先显示
     Sound.item();
     renderOverlay();
+    if (SB) {                                      // 联网写库 + 回拉最新
+      try {
+        await sbAdd(v.name, game.score, game.maxTile);
+        const top = await sbTop(); board = top; saveLBCache(top);
+      } catch (e) {
+        const er = $('nameErr'); if (er) { er.textContent = '联网保存失败，已存本地'; }
+      }
+      renderOverlay();
+    }
   }
-  function boardHTML(board, highlightT) {
-    if (!board.length) return '<div class="ov-empty">还没有记录，争取第一个上榜！</div>';
+  function boardHTML(list, hl) {
+    if (!list.length) return '<div class="ov-empty">还没有记录，争取第一个上榜！</div>';
     const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-    let h = '<ol class="ov-board">';
-    board.forEach((e, i) => {
-      const me = highlightT != null && e.t === highlightT;
+    let h = '<ol class="ov-board">', hlDone = false;
+    list.forEach((e, i) => {
+      const me = hl && !hlDone && e.name === hl.name && e.score === hl.score;
+      if (me) hlDone = true;
       h += `<li class="${me ? 'me' : ''}"><span class="rk">${medal(i)}</span>`
         + `<span class="nm">${escapeHtml(e.name)}</span>`
         + `<span class="sc">${e.score}</span><span class="mx">🌼${e.max}</span></li>`;
@@ -856,11 +886,12 @@
         + '<div id="nameErr" class="ov-err"></div>'
         + '<button id="saveScore" class="ovbtn">保存成绩</button></div>';
     }
-    html += '<div class="ov-boardtitle">🏅 花园榜 · 前十</div>';
-    html += boardHTML(loadLB(), scoreSubmitted ? lastSavedT : null);
+    html += `<div class="ov-boardtitle">🏅 花园榜 · 前十${SB ? '' : '（本地）'}</div>`;
+    html += boardHTML(board, scoreSubmitted ? lastSaved : null);
     html += '<button id="overlaybtn" class="ovbtn">🌱 再来一局</button></div>';
     ov.innerHTML = html;
 
+    syncBoard();   // 拉取线上最新榜单（仅首次，回来后自动重渲染）
     $('overlaybtn').onclick = () => newGame(null);
     if (canEnter) {
       const inp = $('nameInput');
@@ -1023,7 +1054,7 @@
   function newGame(levelId) {
     pending = null;
     anim = null;
-    scoreSubmitted = false; lastSavedT = null; forcedEnd = false;
+    scoreSubmitted = false; lastSaved = null; forcedEnd = false; boardSynced = false;
     game = new Game(levelId);
     refresh();
   }

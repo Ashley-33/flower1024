@@ -111,6 +111,13 @@ window.GAME_CONFIG = {
     nameMaxLen: 8,     // 名字最大长度（按字符计）
   },
 
+  // 联网排行榜（Supabase）。填入后榜单走云端共享；留空则用本地缓存榜单。
+  // anonKey 是「公开」key，可放前端，安全靠数据库的 RLS 策略控制。
+  supabase: {
+    url: 'https://gucophydteoupaxqwasj.supabase.co',
+    anonKey: 'sb_publishable_Nd1P_w7n8HaIKj762RDh2A_N_sQ41NI',   // publishable key（可公开）
+  },
+
   // 违禁词样例表（已小写、去空格做归一化匹配）。
   // ⚠️ 这只是前端兜底的示例清单；正式上线请接入服务端内容安全 / 维护中的敏感词库，
   //    并配合后端校验，前端名单仅作第一道拦截，无法穷举也容易被绕过。
