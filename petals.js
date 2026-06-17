@@ -36,12 +36,12 @@
   }
 
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);   // 降分辨率省电（花瓣柔和，看不出差）
     W = window.innerWidth; H = window.innerHeight;
     for (const c of [bg, fxc]) { c.width = W * dpr; c.height = H * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const target = reduce ? 0 : Math.min(28, Math.round((W * H) / 42000));
+    const target = reduce ? 0 : Math.min(16, Math.round((W * H) / 60000));  // 减少花瓣数量
     while (petals.length < target) petals.push(makePetal(true));
     if (petals.length > target) petals.length = target;
   }
@@ -82,7 +82,7 @@
   }
   window.GardenFx = { fireworks };
 
-  function tick() {
+  function render() {
     ctx.clearRect(0, 0, W, H);
     for (const p of petals) {
       p.swayPhase += p.swaySpeed; p.y += p.vy;
@@ -101,11 +101,20 @@
       fctx.beginPath(); fctx.arc(f.x, f.y, f.size, 0, Math.PI * 2); fctx.fill();
       fctx.restore();
     }
-    requestAnimationFrame(tick);
   }
 
+  // ≤30fps + 后台暂停，降低耗电
+  let raf = null, last = 0; const DT = 1000 / 30;
+  function loop(now) {
+    raf = null;
+    if (now - last >= DT) { render(); last = now; }
+    if (!document.hidden) raf = requestAnimationFrame(loop);
+  }
+  function start() { if (raf == null && !document.hidden) raf = requestAnimationFrame(loop); }
+
   window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { last = 0; start(); } });
   resize();
-  if (reduce) { for (const p of petals) drawPetal(p); }
-  else requestAnimationFrame(tick);
+  if (reduce) render();      // 减少动效：仅画一帧静态
+  else start();
 })();

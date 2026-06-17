@@ -310,7 +310,7 @@
   const ctx = canvas.getContext('2d');
   let game = null;
   let pending = null;   // 道具选目标状态机：{ type, step, from }
-  let GAP, CELL, PAD;
+  let GAP, CELL, PAD, boardGrad = null;
 
   function layout() {
     const dpr = window.devicePixelRatio || 1;
@@ -337,6 +337,9 @@
     canvas.style.height = size + 'px';
     canvas.width = size * dpr; canvas.height = size * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    boardGrad = ctx.createLinearGradient(0, 0, 0, size);   // 缓存背景渐变，避免每帧重建
+    boardGrad.addColorStop(0, '#cdebb6'); boardGrad.addColorStop(1, '#a9d98e');
+    kick();
   }
   function cellRect(r, c) {
     return { x: PAD + c * (CELL + GAP), y: PAD + r * (CELL + GAP), w: CELL, h: CELL };
@@ -511,15 +514,12 @@
   // ---- 帧绘制 ----
   function drawBoardAndPlots() {
     const W = canvas.width / (window.devicePixelRatio || 1);
-    const soil = ctx.createLinearGradient(0, 0, 0, W);
-    soil.addColorStop(0, '#cdebb6'); soil.addColorStop(1, '#a9d98e');
-    ctx.fillStyle = soil; roundRect(0, 0, W, W, 18); ctx.fill();
+    ctx.fillStyle = boardGrad || '#bfe3a3'; roundRect(0, 0, W, W, 18); ctx.fill();
     ctx.strokeStyle = '#caa06b'; ctx.lineWidth = 6; roundRect(3, 3, W - 6, W - 6, 16); ctx.stroke();
+    ctx.fillStyle = 'rgba(120,90,60,0.14)';                 // 花坛用纯色，省去每帧渐变
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
       const b = cellRect(r, c);
-      const plot = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
-      plot.addColorStop(0, 'rgba(120,90,60,0.18)'); plot.addColorStop(1, 'rgba(120,90,60,0.10)');
-      ctx.fillStyle = plot; roundRect(b.x, b.y, b.w, b.h, 12); ctx.fill();
+      roundRect(b.x, b.y, b.w, b.h, 12); ctx.fill();
     }
   }
   // 静止 / 弹出阶段：按 grid 画，mergedSet 弹一下、spawnKey 破土生长
@@ -589,7 +589,21 @@
     }
     drawGrid(now, null, null, 0);
   }
-  function loop(now) { render(now); requestAnimationFrame(loop); }
+  // ---- 低耗渲染调度：空闲停转、≤30fps、后台暂停 ----
+  let rafId = null, lastDraw = 0;
+  const FRAME_MS = 1000 / 30;
+  function hasBigFlower() {
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (game && game.grid[r][c] >= 512) return true;
+    return false;
+  }
+  function needsLoop() { return anim !== null || hasBigFlower(); }   // 仅动画或大花特效时需持续重绘
+  function frame(now) {
+    rafId = null;
+    if (now - lastDraw >= FRAME_MS) { render(now); lastDraw = now; }
+    if (needsLoop() && !document.hidden) rafId = requestAnimationFrame(frame);
+  }
+  function kick() { if (rafId == null && !document.hidden) rafId = requestAnimationFrame(frame); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { lastDraw = 0; kick(); } });
 
   /* ---------------- 声音（Web Audio，纯合成，无音频文件） ---------------- */
   const Sound = {
@@ -607,7 +621,14 @@
     start() {                                   // 首个用户手势后调用
       this.ensure(); if (!this.ctx) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
-      if (!this.started) { this.started = true; this.scheduleBgm(); }
+      if (!this.started) {
+        this.started = true; this.scheduleBgm();
+        document.addEventListener('visibilitychange', () => {   // 后台暂停音频，省电
+          if (!this.ctx) return;
+          if (document.hidden) { try { this.ctx.suspend(); } catch (e) {} }
+          else if (!this.muted) { try { this.ctx.resume(); } catch (e) {} }
+        });
+      }
     },
     note(freq, dur, type, gain, t) {
       if (!this.ctx || this.muted) return;
@@ -633,6 +654,7 @@
     item() { this.note(587.33, 0.16, 'triangle', 0.1); },
     scheduleBgm() {
       const tick = () => {
+        if (document.hidden) return;            // 后台不排期，省电
         if (this.started && !this.muted) {
           const f = this.BGM[this.bgmStep % this.BGM.length];
           this.note(f, 2.2, 'sine', 0.045); this.note(f * 1.5, 2.0, 'sine', 0.02);
@@ -902,7 +924,7 @@
     }
   }
 
-  function refresh() { renderHUD(); }
+  function refresh() { renderHUD(); kick(); }
   const now = () => performance.now();
   // 给一组格子加“弹出/生长”动画（道具用）
   function popCells(cells) {
@@ -1097,5 +1119,5 @@
   setupA2HS();
   newGame(null);
   layout();
-  requestAnimationFrame(loop);
+  kick();
 })();
